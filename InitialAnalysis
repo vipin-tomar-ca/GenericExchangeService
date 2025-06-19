@@ -712,18 +712,163 @@ Retry Policies	With Polly, DLQ fallback on RabbitMQ
 
 7. Telemetry and logs are pushed to a centralized store, accessible to ops and auditors.
 
+Great catch! Let's include the reverse communication flow:
+
+> 🔁 Third-party sends an issue/discrepancy notification over email regarding a previously sent or received file.
+
+
+🧩 Scenario: Third-Party Sends Issue Notification via Email
+
+🔄 Updated Flow Summary
+
+1. Third-party receives file over SFTP.
+
+
+2. They detect an issue (e.g., incorrect schema, invalid record).
+
+
+3. They send an email to your system's monitored inbox (e.g., issues@yourcompany.com).
+
+
+4. Your system automatically:
+
+Parses the email
+
+Extracts metadata (e.g., file name, error message)
+
+Logs it
+
+Links it to existing processing logs
+
+Triggers internal alerts or creates a ticket
+
+
 
 
 
 ---
 
-Would you like:
+✉️ Step-by-Step Implementation
 
-💡 The actual .proto files for gRPC and messaging?
+🟦 1. Monitored Mailbox Processor (.NET 8)
 
-📦 A small .NET 8 solution scaffold implementing this?
+Runs periodically or via IMAP IDLE (push)
 
-📊 A downloadable architecture diagram (Lucidchart or draw.io)?
+Connects to monitored mailbox over IMAP with STARTTLS/TLS
+
+Uses libraries like:
+
+MailKit
+
+.NET System.Net.Mail (fallback)
 
 
-Let me know how you'd like to proceed!
+
+Behavior:
+
+Searches for new emails with subject like Issue: File [file_name]
+
+Parses:
+
+File name
+
+Error summary
+
+Timestamp
+
+Sender domain (for validation)
+
+
+Converts to internal message format
+
+
+
+---
+
+📦 New Message Type: ThirdPartyIssueReportedMessage
+
+message ThirdPartyIssueReportedMessage {
+  string file_id = 1;
+  string file_name = 2;
+  string issue_description = 3;
+  string reported_by = 4;
+  google.protobuf.Timestamp reported_at = 5;
+  string raw_email_body = 6;
+}
+
+
+---
+
+🔁 Internal Routing:
+
+Publish to: file.issues.reported RabbitMQ topic
+
+Consumed by:
+
+FileIssueProcessorService
+
+Optional: IncidentManagementService (create ticket or Slack alert)
+
+
+
+
+---
+
+🟨 2. Log + Notify
+
+Link to existing file metadata in DB (via file_name)
+
+Update file status to Issue Reported
+
+Save full email in audit table
+
+Optional:
+
+Send confirmation to internal ops (via email/Teams/Slack)
+
+Trigger retry/reprocessing (manual or automated)
+
+
+
+
+---
+
+🛡️ Security/Compliance Considerations
+
+Concern	Solution
+
+Email spoofing	Validate domain (SPF, DKIM, DMARC), check known senders
+Email injection	Sanitize inputs before displaying/logging
+Confidential data	Store email content encrypted
+Alert fatigue	Throttle alerts, deduplicate similar issue reports
+
+
+
+---
+
+🔄 Updated System Diagram – Addition (Conceptual)
+
+[ External Email (issue@partner.com) ]
+         │
+     IMAP + TLS
+         ▼
+[ Mailbox Monitor Service (.NET 8) ]
+         │
+    RabbitMQ: file.issues.reported
+         ▼
+[ FileIssueProcessorService ]
+         │
+ ┌─────────────┬────────────┐
+ ▼             ▼            ▼
+Log to DB   Alert Ops   Update File Status
+
+
+---
+
+✅ Final Flow Summary
+
+Scenario	Trigger	Flow
+
+🎯 File received from third party	SFTP download	SftpWorker → RabbitMQ → Processor → gRPC → Alert
+🎯 Discrepancy found internally	gRPC result	EmailNotificationService
+🎯 Issue reported by 3rd party	Email received	MailMonitor → RabbitMQ → FileIssueProcessor
