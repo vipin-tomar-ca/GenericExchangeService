@@ -871,4 +871,122 @@ Scenario	Trigger	Flow
 
 🎯 File received from third party	SFTP download	SftpWorker → RabbitMQ → Processor → gRPC → Alert
 🎯 Discrepancy found internally	gRPC result	EmailNotificationService
-🎯 Issue reported by 3rd party	Email received	MailMonitor → RabbitMQ → FileIssueProcessor
+🎯 Issue reported by 3rd party	Email received
+
+
+
+MailMonitor → RabbitMQ → FileIssueProcessor
+
+---
+
+✅ Why This Architecture Supports Multiple Vendors
+
+1. SFTP Integration (Vendor-Aware & Configurable)
+
+Each vendor may:
+
+Use different SFTP hosts and credentials
+
+Require different file formats, naming conventions, or folder structures
+
+Have specific SLAs or cut-off times
+
+
+How the Architecture Handles This:
+
+Feature	Implementation
+
+🔑 Vendor Profiles	Store vendor configs in DB or appsettings (host, key, folder, retry policy, file type)
+🔁 Pluggable SFTP Tasks	SftpWorkerService loops through vendor configs, runs per vendor
+🗃️ Per-Vendor Logging	File records tagged by vendor_id in DB
+🧪 Per-Vendor Validation	gRPC BusinessRulesService can route logic based on vendor_id
+📂 Flexible Storage Paths	Save files to /incoming/{vendor_id}/{file}
+
+
+
+---
+
+2. Email Notification Handling (Inbound + Outbound) per Vendor
+
+Requirement	Solution
+
+Vendors send issues over email	Email parsing logic uses rules per domain/sender
+Different email templates per vendor	Templating engine supports vendor-specific layouts
+Language/localization support	Configurable templates with language fallback
+Multiple recipient policies	Store contact points per vendor in DB or secrets store
+
+
+
+---
+
+3. Multi-Vendor Messaging Design
+
+In RabbitMQ and Protobuf messages, we already use file_id, vendor_id, and source fields, so each event is traceable.
+
+Example Extended Message:
+
+message FileReceivedMessage {
+  string file_id = 1;
+  string vendor_id = 2; // Added
+  string file_name = 3;
+  string file_path = 4;
+  ...
+}
+
+
+---
+
+4. Routing and Isolation Options (Optional for Scaling)
+
+You can dedicate separate queues/exchanges per vendor:
+
+vendorA.file.received, vendorB.file.received, etc.
+
+
+Or use routing keys:
+
+file.received.vendorA, file.received.vendorB
+
+
+In high-scale environments, this enables:
+
+Load-based scaling
+
+Fine-grained monitoring
+
+Per-vendor circuit breaking / retry logic
+
+
+
+
+---
+
+🔄 Example: Adding a New Vendor
+
+Let’s say you add Vendor C, who:
+
+Uploads ZIP files via SFTP weekly
+
+Sends XML-format discrepancies via email
+
+Uses GPG encryption
+
+
+How You’d Support This: | Component | What to Do | |----------|------------| | VendorConfig | Add vendor details in DB or config file | | SftpWorker | Add handler to unzip and decrypt files | | FileParser | Add support for XML if needed | | EmailMonitorService | Add parser to extract info from XML email | | BusinessRulesService | Plug in custom validation rules via strategy pattern or per-vendor logic | | EmailNotificationService | Load vendor-specific templates and send alerts |
+
+
+---
+
+📦 Summary
+
+This architecture is:
+
+✅ Feature	🔍 Description
+
+Vendor Extensible	Easily supports 1 to N vendors via configs or DB
+Decoupled	Each part is modular and can evolve independently
+Configurable	Vendor-specific behaviors don’t require rewriting core logic
+Scalable	Add workers/services as vendor load increases
+Auditable	File flows are traceable across services, vendors, and time
+Secure	Per-vendor keys, encrypted files, segregated queues/logs
+
