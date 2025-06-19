@@ -1,0 +1,13 @@
+syntax = "proto3";
+package messages;
+import "google/protobuf/timestamp.proto";
+
+message FileReceivedMessage {
+  string file_id = 1;
+  string file_name = 2;
+  string file_path = 3;
+  string hash = 4;
+  int64 size_bytes = 5;
+  string sftp_source = 6;
+  google.protobuf.Timestamp received_at = 7;
+}
