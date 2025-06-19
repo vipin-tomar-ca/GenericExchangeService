@@ -5,8 +5,9 @@ import "validation.proto";
 
 message EmailDiscrepancyNotification {
   string file_id = 1;
-  string recipient = 2;
-  repeated validation.Discrepancy discrepancies = 3;
-  string summary_html = 4;
-  google.protobuf.Timestamp timestamp = 5;
+  string vendor_id = 2;
+  string recipient = 3;
+  repeated validation.Discrepancy discrepancies = 4;
+  string summary_html = 5;
+  google.protobuf.Timestamp timestamp = 6;
 }

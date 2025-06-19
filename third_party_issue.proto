@@ -1,0 +1,13 @@
+syntax = "proto3";
+package issues;
+import "google/protobuf/timestamp.proto";
+
+message ThirdPartyIssueReportedMessage {
+  string file_id = 1;
+  string vendor_id = 2;
+  string file_name = 3;
+  string issue_description = 4;
+  string reported_by = 5;
+  google.protobuf.Timestamp reported_at = 6;
+  string raw_email_body = 7;
+}

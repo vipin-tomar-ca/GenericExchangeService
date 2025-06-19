@@ -4,10 +4,11 @@ import "google/protobuf/timestamp.proto";
 
 message FileReceivedMessage {
   string file_id = 1;
-  string file_name = 2;
-  string file_path = 3;
-  string hash = 4;
-  int64 size_bytes = 5;
-  string sftp_source = 6;
-  google.protobuf.Timestamp received_at = 7;
+  string vendor_id = 2;
+  string file_name = 3;
+  string file_path = 4;
+  string hash = 5;
+  int64 size_bytes = 6;
+  string sftp_source = 7;
+  google.protobuf.Timestamp received_at = 8;
 }

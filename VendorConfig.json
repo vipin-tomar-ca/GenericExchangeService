@@ -1,0 +1,24 @@
+[
+  {
+    "vendor_id": "vendorA",
+    "sftp_host": "sftp.vendorA.com",
+    "sftp_path": "/incoming",
+    "email_recipients": ["ops@yourcompany.com"],
+    "validation_profile": "default",
+    "encryption": {
+      "at_rest": "AES256",
+      "in_transit": "TLS1.2"
+    }
+  },
+  {
+    "vendor_id": "vendorB",
+    "sftp_host": "sftp.vendorB.com",
+    "sftp_path": "/files",
+    "email_recipients": ["alerts@yourcompany.com"],
+    "validation_profile": "custom-b",
+    "encryption": {
+      "at_rest": "AES256",
+      "in_transit": "TLS1.3"
+    }
+  }
+]

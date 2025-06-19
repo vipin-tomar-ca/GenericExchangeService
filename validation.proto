@@ -12,7 +12,8 @@ message RecordData {
 
 message ValidateRecordsRequest {
   string file_id = 1;
-  repeated RecordData records = 2;
+  string vendor_id = 2;
+  repeated RecordData records = 3;
 }
 
 message Discrepancy {
@@ -23,6 +24,7 @@ message Discrepancy {
 
 message ValidationResult {
   string file_id = 1;
-  bool is_valid = 2;
-  repeated Discrepancy discrepancies = 3;
+  string vendor_id = 2;
+  bool is_valid = 3;
+  repeated Discrepancy discrepancies = 4;
 }
